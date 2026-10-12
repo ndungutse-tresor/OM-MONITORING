@@ -1,0 +1,8 @@
+{
+  "organisation": "Old Mutual Insurance Rwanda",
+  "router_ip": "192.168.1.1",
+  "dns_ip": "8.8.8.8",
+  "website_url": "https://www.oldmutual.co.rw",
+  "interval_seconds": 10,
+  "retention_days": 7
+}

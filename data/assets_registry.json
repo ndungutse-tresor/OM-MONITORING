@@ -1,0 +1,23 @@
+[
+  {
+    "id": "om-gw-01",
+    "name": "Head Office Gateway",
+    "ip": "192.168.1.1",
+    "type": "Router",
+    "environment": "Core"
+  },
+  {
+    "id": "om-dns-01",
+    "name": "Google DNS (Internet check)",
+    "ip": "8.8.8.8",
+    "type": "Firewall",
+    "environment": "WAN"
+  },
+  {
+    "id": "om-web-01",
+    "name": "Old Mutual Rwanda Website",
+    "type": "Website",
+    "environment": "Prod",
+    "url": "https://www.oldmutual.co.rw"
+  }
+]

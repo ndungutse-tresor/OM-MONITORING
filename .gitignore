@@ -1,0 +1,8 @@
+node_modules
+.next
+.env.local
+data/*.db
+data/*.db-wal
+data/*.db-shm
+data/alert_history.json
+__pycache__
