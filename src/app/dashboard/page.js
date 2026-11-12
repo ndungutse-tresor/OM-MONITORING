@@ -41,12 +41,59 @@ export default function Dashboard() {
   const tel = usePoll("/api/telemetry?limit=90");
   const ai = usePoll("/api/ai-inference");
   const alerts = usePoll("/api/alerts/history", 30000);
+  const network = usePoll("/api/network/config", 30000);
 
   const rows = tel.data?.rows || [];
   const latest = tel.data?.latest;
   const status = ai.data?.status || "No data";
   const findings = ai.data?.findings || [];
   const level = (v, limit) => (v == null ? "" : v > limit ? "bad" : v > limit * 0.8 ? "warn" : "");
+  const gatewayStatus = !latest
+    ? "Waiting for readings"
+    : latest.router_loss == null
+      ? "No reading"
+      : latest.router_loss >= THRESHOLDS.routerLoss
+        ? "Not responding"
+        : latest.router_loss > 0
+          ? "Some packets lost"
+          : latest.router_latency == null
+            ? "No reading"
+            : latest.router_latency > THRESHOLDS.routerLatency
+              ? "Slow response"
+              : "Connected";
+  const internetStatus = !latest
+    ? "Waiting for readings"
+    : latest.internet_latency == null || (latest.internet_loss ?? 0) >= 100
+      ? "No reply"
+      : (latest.internet_loss ?? 0) > 0
+        ? "Some packets lost"
+        : latest.internet_latency > THRESHOLDS.internetLatency
+          ? "Slow response"
+          : "Responding";
+  const websiteStatus = !latest
+    ? "Waiting for readings"
+    : !latest.web_status || ![200, 301, 302].includes(latest.web_status)
+      ? latest.web_status ? `HTTP ${latest.web_status}` : "No reply"
+      : "Responding";
+  const checkTone = (value) => {
+    if (value === "Responding" || value === "Connected") return "check-good";
+    if (value === "Waiting for readings" || value === "No reading") return "check-neutral";
+    if (value === "Some packets lost" || value === "Slow response") return "check-warn";
+    return "check-attention";
+  };
+  const nextStep = !latest
+    ? "Start the Python sensor to begin collecting readings."
+    : gatewayStatus === "Not responding"
+      ? `The computer cannot reach gateway ${network.data?.gatewayTarget || ""}. Check the Default Gateway setting, Wi-Fi, or network cable.`
+      : gatewayStatus === "Some packets lost" || gatewayStatus === "Slow response"
+        ? `The office gateway (${network.data?.gatewayTarget || "configured gateway"}) is reachable but slow or losing packets. Check Wi-Fi signal, network cables, or router load.`
+      : internetStatus === "No reply"
+        ? `The gateway is reachable, but ${network.data?.checkTarget || "the internet check address"} did not reply. Check the modem or ask your internet provider to check the connection.`
+        : internetStatus === "Some packets lost" || internetStatus === "Slow response"
+          ? `The internet check (${network.data?.checkTarget || "configured destination"}) is slow or losing packets. Check your modem or ask your internet provider to check the connection.`
+          : websiteStatus !== "Responding"
+            ? `The internet check is responding, but ${network.data?.websiteTarget || "the monitored website"} is not. Confirm the website URL or check whether the website is down.`
+            : "No connection issues detected. Keep the sensor running to continue monitoring.";
 
   return (
     <>
@@ -72,6 +119,31 @@ export default function Dashboard() {
         <div className="risk"><strong>{ai.data?.score ?? 0}</strong><span>risk score (0-100)</span></div>
       </div>
 
+      <div className="card connection-card">
+        <div>
+          <h3>Internet connection</h3>
+          <strong>{network.data?.connectionName || "Connection name not set"}</strong>
+        </div>
+        <div>
+          <span className="connection-label">Provider</span>
+          <strong>{network.data?.providerName || "Not configured"}</strong>
+        </div>
+        <div>
+          <span className="connection-label">Internet check destination</span>
+          <strong>{network.data?.checkTarget || "—"}</strong>
+        </div>
+      </div>
+
+      <div className="card connection-health">
+        <h3>Connection checks</h3>
+        <div className="connection-checks">
+          <div><span>Office gateway</span><strong className={checkTone(gatewayStatus)}>{gatewayStatus}</strong></div>
+          <div><span>Internet access</span><strong className={checkTone(internetStatus)}>{internetStatus}</strong></div>
+          <div><span>Website</span><strong className={checkTone(websiteStatus)}>{websiteStatus}</strong></div>
+        </div>
+        <div className="next-step"><b>What to do next</b><p>{nextStep}</p></div>
+      </div>
+
       <div className="tiles">
         <Tile label="Gateway latency" value={latest?.router_latency} unit="ms" level={level(latest?.router_latency, THRESHOLDS.routerLatency)} />
         <Tile label="Gateway packet loss" value={latest?.router_loss} unit="%" level={level(latest?.router_loss, THRESHOLDS.routerLoss)} />
@@ -90,7 +162,7 @@ export default function Dashboard() {
 
       <div className="grid2">
         <div className="card">
-          <h3>Why the system says "{status}"</h3>
+          <h3>Technical findings · {status}</h3>
           {findings.length === 0 && <div className="empty">No findings. Every metric is inside its limit and close to its recent average.</div>}
           {findings.map((f, i) => (
             <div key={i} className={`finding ${f.severity}`}>

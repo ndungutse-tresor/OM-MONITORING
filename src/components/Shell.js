@@ -2,11 +2,12 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Activity, Boxes, Settings, LogOut } from "lucide-react";
+import MonitoringAssistant from "@/components/MonitoringAssistant";
 
 const LINKS = [
   { href: "/dashboard", label: "Dashboard", Icon: Activity },
   { href: "/inventory", label: "Assets", Icon: Boxes },
-  { href: "/settings", label: "Alert settings", Icon: Settings },
+  { href: "/settings", label: "Settings", Icon: Settings },
 ];
 
 export default function Shell({ children }) {
@@ -39,6 +40,7 @@ export default function Shell({ children }) {
         </div>
       </aside>
       <main className="main">{children}</main>
+      <MonitoringAssistant />
     </div>
   );
 }
